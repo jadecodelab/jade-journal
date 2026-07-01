@@ -14,6 +14,8 @@ export function SearchPage() {
   const [selectedTag, setSelectedTag] = useState('')
   const [selectedMood, setSelectedMood] = useState('')
   const [selectedConfidence, setSelectedConfidence] = useState('')
+  const [fromDate, setFromDate] = useState('')
+  const [toDate, setToDate] = useState('')
   const [results, setResults] = useState<Entry[]>([])
   const [searched, setSearched] = useState(false)
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -23,7 +25,7 @@ export function SearchPage() {
     debounce.current = setTimeout(() => {
       runSearch()
     }, 400)
-  }, [query, selectedTag, selectedMood, selectedConfidence])
+  }, [query, selectedTag, selectedMood, selectedConfidence, fromDate, toDate])
 
   async function runSearch() {
     const params: Record<string, string> = {}
@@ -31,6 +33,8 @@ export function SearchPage() {
     if (selectedTag) params.tag = selectedTag
     if (selectedMood) params.mood = selectedMood
     if (selectedConfidence) params.confidence = selectedConfidence
+    if (fromDate) params.from = fromDate
+    if (toDate) params.to = toDate
 
     if (!Object.keys(params).length) {
       setResults([])
@@ -48,11 +52,13 @@ export function SearchPage() {
     setSelectedTag('')
     setSelectedMood('')
     setSelectedConfidence('')
+    setFromDate('')
+    setToDate('')
     setResults([])
     setSearched(false)
   }
 
-  const hasFilters = query || selectedTag || selectedMood || selectedConfidence
+  const hasFilters = query || selectedTag || selectedMood || selectedConfidence || fromDate || toDate
 
   return (
     <div className="pb-nav min-h-full">
@@ -66,7 +72,7 @@ export function SearchPage() {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search entries…"
+            placeholder="Search entries or a date (e.g. july, 2026-07-01)…"
             className="w-full h-11 rounded-xl border border-input bg-card pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-ring transition-all"
           />
           {query && (
@@ -120,6 +126,27 @@ export function SearchPage() {
                   {level}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Date range filter */}
+          <div>
+            <p className="text-xs text-muted-foreground font-medium mb-1.5">Date range</p>
+            <div className="flex gap-2">
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                max={toDate || undefined}
+                className="flex-1 h-9 rounded-lg border border-input bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-ring"
+              />
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                min={fromDate || undefined}
+                className="flex-1 h-9 rounded-lg border border-input bg-card px-2.5 text-xs outline-none focus:ring-2 focus:ring-ring"
+              />
             </div>
           </div>
 
