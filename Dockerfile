@@ -16,7 +16,6 @@ RUN pnpm exec prisma generate
 COPY . .
 RUN pnpm build
 
-ENV DATABASE_URL="file:/app/prisma/data/prod.db"
 ENV NODE_ENV=production
 
 EXPOSE 3001
