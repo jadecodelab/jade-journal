@@ -4,8 +4,9 @@ function getClient(): OpenAI {
   const provider = process.env.AI_PROVIDER ?? 'openai'
 
   if (provider === 'ollama') {
+    const base = (process.env.OLLAMA_URL ?? 'http://localhost:11434').replace(/\/+$/, '')
     return new OpenAI({
-      baseURL: process.env.OLLAMA_URL ?? 'http://localhost:11434/v1',
+      baseURL: base.endsWith('/v1') ? base : `${base}/v1`,
       apiKey: 'ollama',
     })
   }
