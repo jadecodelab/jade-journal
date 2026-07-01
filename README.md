@@ -1,11 +1,13 @@
 # Jade Journal
 
-A local-first, privacy-focused personal journal with AI reflection. Everything stays on your machine. AI is only called when you explicitly press a button.
+A privacy-focused personal journal with AI reflection, deployable to the cloud or run locally.
+
+**Live app:** [https://jade-journal-production.up.railway.app](https://jade-journal-production.up.railway.app)
 
 ## Features
 
 - **Journal Editor** — distraction-free writing with autosave, word count, mood picker, and confidence level
-- **AI Assistant** — Improve Writing, Organize, and Extract Insights (requires OpenAI API key)
+- **AI Assistant** — Improve Writing, Organize, and Extract Insights (Ollama or OpenAI)
 - **Search** — filter by keyword, mood, confidence, and tags
 - **Timeline** — calendar view with per-day entry access
 - **Reflect** — AI-generated monthly and yearly reflections
@@ -20,17 +22,19 @@ A local-first, privacy-focused personal journal with AI reflection. Everything s
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
 | Backend | Node.js, Express |
-| Database | SQLite via Prisma ORM |
-| AI | OpenAI API (gpt-4o, configurable) |
+| Database | PostgreSQL via Prisma ORM |
+| AI | Ollama (local, free) or OpenAI API (cloud) |
 | Package manager | pnpm |
 | Container | Docker |
+| Hosting | Railway |
 
-## Getting Started
+## Getting Started (Local)
 
 ### Prerequisites
 
 - Node.js 20+
 - pnpm (`npm install -g pnpm`)
+- PostgreSQL (local install, Docker, or a free cloud instance e.g. [Neon](https://neon.tech))
 
 ### 1. Clone and install
 
@@ -50,18 +54,23 @@ cp .env.example .env
 Edit `.env`:
 
 ```env
-APP_PASSWORD=your-password-here       # Password to open the journal
-OPENAI_API_KEY=sk-...                 # Optional — leave blank for fallback AI
-OPENAI_MODEL=gpt-4o                   # Optional — change to any OpenAI model
-PORT=3001
-DATABASE_URL="file:./dev.db"
+APP_PASSWORD=your-password-here
+DATABASE_URL="postgresql://user:password@localhost:5432/jade_journal"
+
+# AI — choose one:
+AI_PROVIDER=ollama          # free, local (https://ollama.com)
+OLLAMA_MODEL=llama3.2
+OLLAMA_URL=http://localhost:11434
+
+# AI_PROVIDER=openai        # paid, cloud
+# OPENAI_API_KEY=sk-...
+# OPENAI_MODEL=gpt-4o
 ```
 
 ### 3. Initialize the database
 
 ```bash
-pnpm prisma:migrate
-pnpm prisma:seed          # Optional: add sample entries
+pnpm exec prisma migrate deploy
 ```
 
 ### 4. Run
@@ -72,15 +81,16 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-## Running with Docker
+## Deploy to Railway
 
-```bash
-cp .env.example .env
-# Fill in .env, then:
-docker compose up --build
-```
-
-The journal will be available at [http://localhost:3001](http://localhost:3001). Your database is stored in a named Docker volume (`jade-data`) so it persists across restarts.
+1. Fork this repo and create a [Railway](https://railway.app) project from it
+2. Add a **PostgreSQL** database service (Railway → New → Database → PostgreSQL)
+3. In your app service **Variables**, add:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+   - `APP_PASSWORD` = your journal password
+   - `NODE_ENV` = `production`
+   - `AI_PROVIDER` = `openai` (and `OPENAI_API_KEY`) or `ollama` (requires a self-hosted Ollama instance)
+4. Railway builds via the Dockerfile and runs `prisma migrate deploy` on startup
 
 ## Project Structure
 
@@ -96,12 +106,12 @@ jade-journal/
 │   └── types/              # Shared TypeScript types
 ├── server/                 # Express API
 │   ├── routes/             # entries, search, timeline, dashboard, reflections, ai, auth
-│   └── services/           # ai.ts (OpenAI + fallback logic)
+│   └── services/           # ai.ts (Ollama + OpenAI + fallback logic)
 ├── prisma/
-│   ├── schema.prisma       # SQLite data model
+│   ├── schema.prisma       # PostgreSQL data model
 │   └── seed.ts             # Sample data
 ├── .env.example
-├── docker-compose.yml
+├── railway.toml
 └── Dockerfile
 ```
 
@@ -127,11 +137,6 @@ jade-journal/
 
 ## Privacy
 
-- All data is stored locally in SQLite (`prisma/dev.db`)
 - No analytics, no telemetry, no tracking
-- OpenAI is only called when you press an AI button
-- The app works fully offline with fallback AI responses when no API key is set
-
-## AI Fallback
-
-If `OPENAI_API_KEY` is not set, all AI features return deterministic fallback responses clearly marked in the UI. The app is fully usable without an API key.
+- AI is only called when you explicitly press an AI button
+- The app works fully without AI (fallback responses clearly marked in the UI)
