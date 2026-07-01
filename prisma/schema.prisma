@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Entry {
+  id         String   @id @default(cuid())
+  title      String   @default("")
+  entryDate  DateTime
+  rawContent String   @default("")
+  mood       String?
+  confidence String?
+  wordCount  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tags     EntryTag[]
+  insights Insight?
+}
+
+model Tag {
+  id      String     @id @default(cuid())
+  name    String     @unique
+  entries EntryTag[]
+}
+
+model EntryTag {
+  entryId String
+  tagId   String
+  entry   Entry  @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, tagId])
+}
+
+model Insight {
+  id            String   @id @default(cuid())
+  entryId       String   @unique
+  wins          String   @default("[]")
+  challenges    String   @default("[]")
+  lessons       String   @default("[]")
+  goals         String   @default("[]")
+  suggestedTags String   @default("[]")
+  model         String?
+  isFallback    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  entry Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+}
+
+model Reflection {
+  id          String   @id @default(cuid())
+  kind        String
+  periodStart DateTime
+  periodEnd   DateTime
+  content     String
+  model       String?
+  isFallback  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

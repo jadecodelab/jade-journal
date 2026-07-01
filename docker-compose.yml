@@ -1,0 +1,14 @@
+services:
+  jade-journal:
+    build: .
+    ports:
+      - "3001:3001"
+    volumes:
+      - jade-data:/app/prisma/data
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=file:/app/prisma/data/prod.db
+
+volumes:
+  jade-data:
