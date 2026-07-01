@@ -1,54 +1,71 @@
 import OpenAI from 'openai'
 
-let client: OpenAI | null = null
+function getClient(): OpenAI {
+  const provider = process.env.AI_PROVIDER ?? 'openai'
 
-function getClient(): OpenAI | null {
-  if (!process.env.OPENAI_API_KEY) return null
-  if (!client) client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  return client
+  if (provider === 'ollama') {
+    return new OpenAI({
+      baseURL: process.env.OLLAMA_URL ?? 'http://localhost:11434/v1',
+      apiKey: 'ollama',
+    })
+  }
+
+  if (!process.env.OPENAI_API_KEY) throw new Error('no_key')
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 }
 
-const MODEL = () => process.env.OPENAI_MODEL ?? 'gpt-4o'
+function MODEL(): string {
+  const provider = process.env.AI_PROVIDER ?? 'openai'
+  if (provider === 'ollama') return process.env.OLLAMA_MODEL ?? 'llama3.2'
+  return process.env.OPENAI_MODEL ?? 'gpt-4o'
+}
+
+async function chat(system: string, user: string): Promise<string> {
+  const ai = getClient()
+  const res = await ai.chat.completions.create({
+    model: MODEL(),
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.7,
+  })
+  return res.choices[0]?.message?.content?.trim() ?? ''
+}
+
+function stripJsonFences(text: string): string {
+  return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim()
+}
+
+function isEnabled(): boolean {
+  const provider = process.env.AI_PROVIDER ?? 'openai'
+  if (provider === 'ollama') return true
+  return !!process.env.OPENAI_API_KEY
+}
+
+// ─── Public API ─────────────────────────────────────────────────────────────
 
 export async function improveWriting(rawContent: string): Promise<{ text: string; isFallback: boolean; model: string }> {
-  const ai = getClient()
-  if (!ai) return { text: fallbackImprove(rawContent), isFallback: true, model: 'fallback' }
-
+  if (!isEnabled()) return { text: rawContent, isFallback: true, model: 'fallback' }
   try {
-    const response = await ai.responses.create({
-      model: MODEL(),
-      input: [
-        {
-          role: 'system',
-          content:
-            'You are a careful editor. Fix grammar, punctuation, and clarity issues in the journal entry below. Do NOT change the author\'s tone, personality, or voice. Do NOT make it sound like AI. Return only the polished text, nothing else.',
-        },
-        { role: 'user', content: rawContent },
-      ],
-    })
-    return { text: response.output_text.trim(), isFallback: false, model: MODEL() }
+    const text = await chat(
+      "You are a careful editor. Fix grammar, punctuation, and clarity issues in the journal entry. Do NOT change the author's tone, personality, or voice. Do NOT make it sound like AI. Keep their personality. Return only the polished text, nothing else.",
+      rawContent,
+    )
+    return { text, isFallback: false, model: MODEL() }
   } catch {
-    return { text: fallbackImprove(rawContent), isFallback: true, model: 'fallback' }
+    return { text: rawContent, isFallback: true, model: 'fallback' }
   }
 }
 
 export async function organizeEntry(rawContent: string): Promise<{ text: string; isFallback: boolean; model: string }> {
-  const ai = getClient()
-  if (!ai) return { text: fallbackOrganize(rawContent), isFallback: true, model: 'fallback' }
-
+  if (!isEnabled()) return { text: fallbackOrganize(rawContent), isFallback: true, model: 'fallback' }
   try {
-    const response = await ai.responses.create({
-      model: MODEL(),
-      input: [
-        {
-          role: 'system',
-          content:
-            'Reorganize the journal entry into four clearly labeled sections: "What Happened", "How I Felt", "What I Learned", and "Next Steps". Keep the author\'s words as much as possible. Return only the organized text with markdown headings.',
-        },
-        { role: 'user', content: rawContent },
-      ],
-    })
-    return { text: response.output_text.trim(), isFallback: false, model: MODEL() }
+    const text = await chat(
+      "Reorganize the journal entry into four clearly labeled sections with markdown headings: ## What Happened, ## How I Felt, ## What I Learned, ## Next Steps. Keep the author's words as much as possible. Return only the organized text.",
+      rawContent,
+    )
+    return { text, isFallback: false, model: MODEL() }
   } catch {
     return { text: fallbackOrganize(rawContent), isFallback: true, model: 'fallback' }
   }
@@ -65,16 +82,10 @@ export interface InsightResult {
 }
 
 export async function extractInsights(rawContent: string): Promise<InsightResult> {
-  const ai = getClient()
-  if (!ai) return { ...fallbackInsights(), isFallback: true, model: 'fallback' }
-
+  if (!isEnabled()) return { ...fallbackInsights(), isFallback: true, model: 'fallback' }
   try {
-    const response = await ai.responses.create({
-      model: MODEL(),
-      input: [
-        {
-          role: 'system',
-          content: `Extract structured insights from this journal entry. Return a JSON object with exactly these keys:
+    const raw = await chat(
+      `Extract structured insights from this journal entry. Return ONLY a valid JSON object with exactly these keys:
 {
   "wins": ["..."],
   "challenges": ["..."],
@@ -82,14 +93,11 @@ export async function extractInsights(rawContent: string): Promise<InsightResult
   "goals": ["..."],
   "suggestedTags": ["..."]
 }
-suggestedTags should be from: Interview, Career, School, Family, Programming, Health, Relationships, Personal Growth.
-Return only valid JSON.`,
-        },
-        { role: 'user', content: rawContent },
-      ],
-    })
-
-    const json = JSON.parse(response.output_text.trim()) as InsightResult
+suggestedTags must only use values from: Interview, Career, School, Family, Programming, Health, Relationships, Personal Growth.
+Return only the JSON object. No markdown, no explanation.`,
+      rawContent,
+    )
+    const json = JSON.parse(stripJsonFences(raw)) as Omit<InsightResult, 'isFallback' | 'model'>
     return { ...json, isFallback: false, model: MODEL() }
   } catch {
     return { ...fallbackInsights(), isFallback: true, model: 'fallback' }
@@ -113,20 +121,15 @@ export async function generateMonthlyReflection(
   entries: { rawContent: string; mood?: string | null; confidence?: string | null; entryDate: Date }[],
   period: string,
 ): Promise<MonthlyReflectionResult> {
-  const ai = getClient()
-  if (!ai) return { ...fallbackMonthly(period), isFallback: true, model: 'fallback' }
+  if (!isEnabled()) return { ...fallbackMonthly(period), isFallback: true, model: 'fallback' }
 
   const context = entries
     .map((e) => `[${new Date(e.entryDate).toLocaleDateString()} | mood: ${e.mood ?? 'N/A'} | confidence: ${e.confidence ?? 'N/A'}]\n${e.rawContent}`)
     .join('\n\n---\n\n')
 
   try {
-    const response = await ai.responses.create({
-      model: MODEL(),
-      input: [
-        {
-          role: 'system',
-          content: `You are a thoughtful journaling companion. Analyze these journal entries from ${period} and return a JSON object with exactly:
+    const raw = await chat(
+      `You are a thoughtful journaling companion. Analyze these journal entries from ${period} and return ONLY a valid JSON object with exactly these keys:
 {
   "biggestWins": ["..."],
   "challenges": ["..."],
@@ -137,13 +140,11 @@ export async function generateMonthlyReflection(
   "confidenceTrend": "...",
   "quoteFromYourself": "..."
 }
-quoteFromYourself should be a direct quote (verbatim) from the entries that captures the month well.
-Return only valid JSON.`,
-        },
-        { role: 'user', content: context },
-      ],
-    })
-    const json = JSON.parse(response.output_text.trim()) as MonthlyReflectionResult
+quoteFromYourself must be a direct verbatim quote from the entries that captures the month well.
+Return only the JSON object. No markdown, no explanation.`,
+      context,
+    )
+    const json = JSON.parse(stripJsonFences(raw)) as Omit<MonthlyReflectionResult, 'isFallback' | 'model'>
     return { ...json, isFallback: false, model: MODEL() }
   } catch {
     return { ...fallbackMonthly(period), isFallback: true, model: 'fallback' }
@@ -171,20 +172,15 @@ export async function generateYearlyReflection(
   entries: { rawContent: string; mood?: string | null; confidence?: string | null; entryDate: Date }[],
   year: number,
 ): Promise<YearlyReflectionResult> {
-  const ai = getClient()
-  if (!ai) return { ...fallbackYearly(year), isFallback: true, model: 'fallback' }
+  if (!isEnabled()) return { ...fallbackYearly(year), isFallback: true, model: 'fallback' }
 
   const context = entries
     .map((e) => `[${new Date(e.entryDate).toLocaleDateString()} | mood: ${e.mood ?? 'N/A'} | confidence: ${e.confidence ?? 'N/A'}]\n${e.rawContent}`)
     .join('\n\n---\n\n')
 
   try {
-    const response = await ai.responses.create({
-      model: MODEL(),
-      input: [
-        {
-          role: 'system',
-          content: `You are a deeply empathetic journaling companion reviewing a full year of journal entries from ${year}. Return a JSON object with exactly these keys:
+    const raw = await chat(
+      `You are a deeply empathetic journaling companion reviewing a full year of journal entries from ${year}. Return ONLY a valid JSON object with exactly these keys:
 {
   "whatHappened": "...",
   "biggestAccomplishments": ["..."],
@@ -200,23 +196,17 @@ export async function generateYearlyReflection(
   "letterFromAI": "..."
 }
 letterFromAI should be a heartfelt, personal 2-3 paragraph letter celebrating growth and acknowledging struggles.
-Return only valid JSON.`,
-        },
-        { role: 'user', content: context },
-      ],
-    })
-    const json = JSON.parse(response.output_text.trim()) as YearlyReflectionResult
+Return only the JSON object. No markdown, no explanation.`,
+      context,
+    )
+    const json = JSON.parse(stripJsonFences(raw)) as Omit<YearlyReflectionResult, 'isFallback' | 'model'>
     return { ...json, isFallback: false, model: MODEL() }
   } catch {
     return { ...fallbackYearly(year), isFallback: true, model: 'fallback' }
   }
 }
 
-// ─── Deterministic fallbacks ───────────────────────────────────────────────
-
-function fallbackImprove(text: string): string {
-  return text
-}
+// ─── Deterministic fallbacks ─────────────────────────────────────────────────
 
 function fallbackOrganize(text: string): string {
   return `## What Happened\n\n${text}\n\n## How I Felt\n\n*(Add your feelings here)*\n\n## What I Learned\n\n*(Add your lessons here)*\n\n## Next Steps\n\n*(Add your next steps here)*`
@@ -235,12 +225,12 @@ function fallbackInsights(): Omit<InsightResult, 'isFallback' | 'model'> {
 function fallbackMonthly(period: string): Omit<MonthlyReflectionResult, 'isFallback' | 'model'> {
   return {
     biggestWins: ['Maintained a journaling habit'],
-    challenges: ['AI reflection unavailable — add your OPENAI_API_KEY to enable it'],
+    challenges: [`AI reflection unavailable for ${period}`],
     lessonsLearned: ['Every entry is progress'],
     interestingMemories: [],
     recurringThemes: [],
-    moodTrend: `No trend data for ${period}`,
-    confidenceTrend: `No trend data for ${period}`,
+    moodTrend: 'No trend data available',
+    confidenceTrend: 'No trend data available',
     quoteFromYourself: '',
   }
 }
@@ -258,6 +248,6 @@ function fallbackYearly(year: number): Omit<YearlyReflectionResult, 'isFallback'
     skillsDeveloped: [],
     worriedAboutNeverHappened: [],
     adviceToNextYear: 'Keep writing.',
-    letterFromAI: `Add your OPENAI_API_KEY to .env to unlock a personalized yearly reflection letter for ${year}.`,
+    letterFromAI: `Start Ollama and set AI_PROVIDER=ollama in .env to unlock AI reflections for ${year}.`,
   }
 }
