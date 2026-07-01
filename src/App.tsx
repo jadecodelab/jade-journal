@@ -32,7 +32,7 @@ function AppShell() {
   const hideNav = location.pathname.startsWith('/entry/')
 
   return (
-    <div className="flex flex-col min-h-full max-w-lg mx-auto relative">
+    <div className="flex flex-col min-h-full w-full max-w-lg mx-auto relative">
       <main className="flex-1 overflow-y-auto">
         <Routes>
           <Route path="/" element={<HomePage />} />
