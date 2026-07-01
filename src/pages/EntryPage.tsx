@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Pencil, Trash2, Sparkles, Loader2, AlertCircle, Check } from 'lucide-react'
 import { getEntry, deleteEntry, aiImprove, aiOrganize, aiInsights, updateEntry } from '@/lib/api'
+
 import type { Entry } from '@/types'
 import { formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -110,11 +111,9 @@ export function EntryPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="flex items-center gap-2">
-          <Link to={`/write?edit=${entry.id}`}>
-            <button className="p-2 text-muted-foreground hover:text-foreground active:opacity-60">
-              <Pencil className="h-4 w-4" />
-            </button>
-          </Link>
+          <button onClick={() => navigate(`/write?edit=${entry.id}`)} className="p-2 text-muted-foreground hover:text-foreground active:opacity-60">
+            <Pencil className="h-4 w-4" />
+          </button>
           <button onClick={handleDelete} className="p-2 text-muted-foreground hover:text-destructive active:opacity-60">
             <Trash2 className="h-4 w-4" />
           </button>
