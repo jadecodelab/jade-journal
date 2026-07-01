@@ -28,6 +28,7 @@ export function WritePage({ initialEntry }: WritePageProps) {
   const [showMoodPicker, setShowMoodPicker] = useState(false)
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isDirty = useRef(false)
+  const isFirstRender = useRef(true)
 
   useEffect(() => {
     const count = content.trim().split(/\s+/).filter(Boolean).length
@@ -56,17 +57,22 @@ export function WritePage({ initialEntry }: WritePageProps) {
     }
   }, [title, content, mood, confidence, selectedTags, entryId])
 
-  function scheduleAutosave() {
+  // Reschedule the debounced save whenever a field changes, after React
+  // commits the new state — avoids autosaving a stale closure's values.
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
     isDirty.current = true
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
     autosaveTimer.current = setTimeout(save, AUTOSAVE_MS)
-  }
+  }, [title, content, mood, confidence, selectedTags, save])
 
   function toggleTag(tag: string) {
     setSelectedTags((prev) =>
       prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
     )
-    scheduleAutosave()
   }
 
   async function handleBack() {
@@ -99,14 +105,14 @@ export function WritePage({ initialEntry }: WritePageProps) {
         <input
           type="text"
           value={title}
-          onChange={(e) => { setTitle(e.target.value); scheduleAutosave() }}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="Title"
           className="w-full text-xl font-semibold bg-transparent outline-none placeholder:text-muted-foreground/50 text-foreground"
         />
 
         <textarea
           value={content}
-          onChange={(e) => { setContent(e.target.value); scheduleAutosave() }}
+          onChange={(e) => setContent(e.target.value)}
           placeholder="What's on your mind…"
           autoFocus={!initialEntry}
           className="w-full min-h-[40vh] bg-transparent outline-none text-base leading-relaxed placeholder:text-muted-foreground/50 text-foreground"
@@ -140,7 +146,6 @@ export function WritePage({ initialEntry }: WritePageProps) {
                     onClick={() => {
                       setMood(mood === value ? '' : value)
                       setShowMoodPicker(false)
-                      scheduleAutosave()
                     }}
                     className={cn(
                       'flex flex-col items-center gap-1 rounded-xl p-2 transition-all',
@@ -163,7 +168,7 @@ export function WritePage({ initialEntry }: WritePageProps) {
             {CONFIDENCE_LEVELS.map((level) => (
               <button
                 key={level}
-                onClick={() => { setConfidence(confidence === level ? '' : level); scheduleAutosave() }}
+                onClick={() => setConfidence(confidence === level ? '' : level)}
                 className={cn(
                   'flex-1 h-8 rounded-lg text-sm font-medium transition-all',
                   confidence === level
