@@ -16,8 +16,6 @@ RUN pnpm exec prisma generate
 COPY . .
 RUN pnpm build
 
-# Persistent volume for SQLite
-VOLUME /app/prisma/data
 ENV DATABASE_URL="file:/app/prisma/data/prod.db"
 ENV NODE_ENV=production
 
