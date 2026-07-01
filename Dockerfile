@@ -10,6 +10,9 @@ WORKDIR /app
 # Install dependencies
 COPY package.json pnpm.yaml pnpm-workspace.yaml pnpm-lock.yaml* ./
 RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Copy schema before generating client
+COPY prisma ./prisma
 RUN pnpm exec prisma generate
 
 # Copy source and build frontend
