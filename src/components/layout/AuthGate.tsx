@@ -42,8 +42,8 @@ export function AuthGate({ children }: AuthGateProps) {
     <div className="fixed inset-0 bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm animate-slide-up">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <span className="text-3xl">📔</span>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4 overflow-hidden">
+            <img src="/Jade.png" alt="Jade Journal" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-2xl font-semibold text-foreground">Jade Journal</h1>
           <p className="text-muted-foreground text-sm mt-1">Your private space to reflect</p>
