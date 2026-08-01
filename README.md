@@ -2,7 +2,7 @@
 
 A privacy-focused personal journal with AI reflection, deployable to the cloud or run locally.
 
-**Live app:** [https://jade-journal-production.up.railway.app](https://jade-journal-production.up.railway.app)
+**Live app:** [https://jade-journal.onrender.com](https://jade-journal.onrender.com)
 
 ## Features
 
@@ -22,11 +22,11 @@ A privacy-focused personal journal with AI reflection, deployable to the cloud o
 |---|---|
 | Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
 | Backend | Node.js, Express |
-| Database | PostgreSQL via Prisma ORM |
+| Database | PostgreSQL via Prisma ORM (Neon) |
 | AI | Ollama (local, free) or OpenAI API (cloud) |
 | Package manager | pnpm |
 | Container | Docker |
-| Hosting | Railway |
+| Hosting | Render |
 
 ## Getting Started (Local)
 
@@ -81,16 +81,15 @@ pnpm dev
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-## Deploy to Railway
+## Deploy to Render
 
-1. Fork this repo and create a [Railway](https://railway.app) project from it
-2. Add a **PostgreSQL** database service (Railway → New → Database → PostgreSQL)
-3. In your app service **Variables**, add:
-   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}`
+1. Create a free [Neon](https://neon.tech) Postgres database and copy its connection string
+2. Fork this repo, then on [Render](https://render.com) create a Blueprint (or Web Service) from it — Render picks up `render.yaml` and builds via the Dockerfile
+3. Set the env vars Render prompts for:
+   - `DATABASE_URL` = your Neon connection string
    - `APP_PASSWORD` = your journal password
-   - `NODE_ENV` = `production`
-   - `AI_PROVIDER` = `openai` (and `OPENAI_API_KEY`) or `ollama` (requires a self-hosted Ollama instance)
-4. Railway builds via the Dockerfile and runs `prisma migrate deploy` on startup
+   - `OPENAI_API_KEY` (if using `AI_PROVIDER=openai`, set via `render.yaml`; use `ollama` instead only with a self-hosted Ollama instance)
+4. Render builds via the Dockerfile and runs `prisma migrate deploy` on startup
 
 ## Project Structure
 
