@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation, useSearchParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { AuthGate } from '@/components/layout/AuthGate'
 import { BottomNav } from '@/components/layout/BottomNav'
@@ -28,9 +28,6 @@ function WritePageWrapper() {
 }
 
 function AppShell() {
-  const location = useLocation()
-  const hideNav = location.pathname.startsWith('/entry/')
-
   return (
     <div className="flex flex-col min-h-full w-full max-w-lg mx-auto relative">
       <main className="flex-1 overflow-y-auto">
@@ -43,7 +40,7 @@ function AppShell() {
           <Route path="/reflect" element={<ReflectPage />} />
         </Routes>
       </main>
-      {!hideNav && <BottomNav />}
+      <BottomNav />
       <ToastContainer />
     </div>
   )
