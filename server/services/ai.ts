@@ -54,7 +54,8 @@ export async function improveWriting(rawContent: string): Promise<{ text: string
       rawContent,
     )
     return { text, isFallback: false, model: MODEL() }
-  } catch {
+  } catch (err) {
+    console.error('[ai] improveWriting failed:', err)
     return { text: rawContent, isFallback: true, model: 'fallback' }
   }
 }
@@ -67,7 +68,8 @@ export async function organizeEntry(rawContent: string): Promise<{ text: string;
       rawContent,
     )
     return { text, isFallback: false, model: MODEL() }
-  } catch {
+  } catch (err) {
+    console.error('[ai] organizeEntry failed:', err)
     return { text: fallbackOrganize(rawContent), isFallback: true, model: 'fallback' }
   }
 }
@@ -100,7 +102,8 @@ Return only the JSON object. No markdown, no explanation.`,
     )
     const json = JSON.parse(stripJsonFences(raw)) as Omit<InsightResult, 'isFallback' | 'model'>
     return { ...json, isFallback: false, model: MODEL() }
-  } catch {
+  } catch (err) {
+    console.error('[ai] extractInsights failed:', err)
     return { ...fallbackInsights(), isFallback: true, model: 'fallback' }
   }
 }
@@ -147,7 +150,8 @@ Return only the JSON object. No markdown, no explanation.`,
     )
     const json = JSON.parse(stripJsonFences(raw)) as Omit<MonthlyReflectionResult, 'isFallback' | 'model'>
     return { ...json, isFallback: false, model: MODEL() }
-  } catch {
+  } catch (err) {
+    console.error('[ai] generateMonthlyReflection failed:', err)
     return { ...fallbackMonthly(period), isFallback: true, model: 'fallback' }
   }
 }
@@ -202,7 +206,8 @@ Return only the JSON object. No markdown, no explanation.`,
     )
     const json = JSON.parse(stripJsonFences(raw)) as Omit<YearlyReflectionResult, 'isFallback' | 'model'>
     return { ...json, isFallback: false, model: MODEL() }
-  } catch {
+  } catch (err) {
+    console.error('[ai] generateYearlyReflection failed:', err)
     return { ...fallbackYearly(year), isFallback: true, model: 'fallback' }
   }
 }
