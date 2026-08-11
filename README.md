@@ -18,78 +18,15 @@ A privacy-focused personal journal with AI reflection, deployable to the cloud o
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
-| Backend | Node.js, Express |
-| Database | PostgreSQL via Prisma ORM (Neon) |
-| AI | Ollama (local, free) or OpenAI API (cloud) |
-| Package manager | pnpm |
-| Container | Docker |
-| Hosting | Render |
-
-## Getting Started (Local)
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm (`npm install -g pnpm`)
-- PostgreSQL (local install, Docker, or a free cloud instance e.g. [Neon](https://neon.tech))
-
-### 1. Clone and install
-
-```bash
-git clone https://github.com/jadecodelab/jade-journal.git
-cd jade-journal
-pnpm install --ignore-scripts
-pnpm exec prisma generate
-```
-
-### 2. Configure environment
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`:
-
-```env
-APP_PASSWORD=your-password-here
-DATABASE_URL="postgresql://user:password@localhost:5432/jade_journal"
-
-# AI — choose one:
-AI_PROVIDER=ollama          # free, local (https://ollama.com)
-OLLAMA_MODEL=llama3.2
-OLLAMA_URL=http://localhost:11434
-
-# AI_PROVIDER=openai        # paid, cloud
-# OPENAI_API_KEY=sk-...
-# OPENAI_MODEL=gpt-4o
-```
-
-### 3. Initialize the database
-
-```bash
-pnpm exec prisma migrate deploy
-```
-
-### 4. Run
-
-```bash
-pnpm dev
-```
-
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-## Deploy to Render
-
-1. Create a free [Neon](https://neon.tech) Postgres database and copy its connection string
-2. Fork this repo, then on [Render](https://render.com) create a Blueprint (or Web Service) from it — Render picks up `render.yaml` and builds via the Dockerfile
-3. Set the env vars Render prompts for:
-   - `DATABASE_URL` = your Neon connection string
-   - `APP_PASSWORD` = your journal password
-   - `OPENAI_API_KEY` (if using `AI_PROVIDER=openai`, set via `render.yaml`; use `ollama` instead only with a self-hosted Ollama instance)
-4. Render builds via the Dockerfile and runs `prisma migrate deploy` on startup
+| Layer           | Technology                                          |
+| --------------- | --------------------------------------------------- |
+| Frontend        | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| Backend         | Node.js, Express                                    |
+| Database        | PostgreSQL via Prisma ORM (Neon)                    |
+| AI              | Ollama (local, free) or OpenAI API (cloud)          |
+| Package manager | pnpm                                                |
+| Container       | Docker                                              |
+| Hosting         | Render                                              |
 
 ## Project Structure
 
@@ -116,23 +53,23 @@ jade-journal/
 
 ## API Routes
 
-| Method | Route | Description |
-|---|---|---|
-| POST | `/api/auth/verify` | Verify session password |
-| GET | `/api/entries` | List all entries |
-| POST | `/api/entries` | Create entry |
-| GET | `/api/entries/:id` | Get single entry |
-| PATCH | `/api/entries/:id` | Update entry |
-| DELETE | `/api/entries/:id` | Delete entry |
-| GET | `/api/search` | Search with filters |
-| GET | `/api/timeline` | Entries for a month |
-| GET | `/api/timeline/on-this-day` | Entries on this calendar day from past years |
-| GET | `/api/dashboard` | Stats and charts data |
-| POST | `/api/entries/:id/ai/improve` | AI writing improvement |
-| POST | `/api/entries/:id/ai/organize` | AI organization |
-| POST | `/api/entries/:id/ai/insights` | AI insight extraction |
-| POST | `/api/reflections/monthly` | Generate monthly reflection |
-| POST | `/api/reflections/yearly` | Generate yearly reflection |
+| Method | Route                          | Description                                  |
+| ------ | ------------------------------ | -------------------------------------------- |
+| POST   | `/api/auth/verify`             | Verify session password                      |
+| GET    | `/api/entries`                 | List all entries                             |
+| POST   | `/api/entries`                 | Create entry                                 |
+| GET    | `/api/entries/:id`             | Get single entry                             |
+| PATCH  | `/api/entries/:id`             | Update entry                                 |
+| DELETE | `/api/entries/:id`             | Delete entry                                 |
+| GET    | `/api/search`                  | Search with filters                          |
+| GET    | `/api/timeline`                | Entries for a month                          |
+| GET    | `/api/timeline/on-this-day`    | Entries on this calendar day from past years |
+| GET    | `/api/dashboard`               | Stats and charts data                        |
+| POST   | `/api/entries/:id/ai/improve`  | AI writing improvement                       |
+| POST   | `/api/entries/:id/ai/organize` | AI organization                              |
+| POST   | `/api/entries/:id/ai/insights` | AI insight extraction                        |
+| POST   | `/api/reflections/monthly`     | Generate monthly reflection                  |
+| POST   | `/api/reflections/yearly`      | Generate yearly reflection                   |
 
 ## Privacy
 
